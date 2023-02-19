@@ -331,7 +331,12 @@ class FantiaDownloader:
                 percent = int(100 * downloaded / file_size)
                 self.output("\r|{0}{1}| {2}% ".format("\u2588" * done, " " * (25 - done), percent))
         self.output("\n")
-        os.rename(incomplete_filename, filepath)
+
+        """change"""
+        try:
+            os.rename(incomplete_filename, filepath)
+        except FileExistsError:
+            self.output("!!! Duplicated file name, left with server filename !!! \n")
 
         modification_time_string = request.headers["Last-Modified"]
         modification_time = int(dt.strptime(modification_time_string, "%a, %d %b %Y %H:%M:%S %Z").timestamp())
@@ -347,7 +352,7 @@ class FantiaDownloader:
 
     def download_file(self, download_url, filename, post_directory):
         """Download a file to the post's directory."""
-        self.perform_download(download_url, filename, use_server_filename=True) # Force serve filenames to prevent duplicate collision
+        self.perform_download(download_url, filename, use_server_filename=False) # Force serve filenames to prevent duplicate collision
 
     def download_post_content(self, post_json, post_directory, post_title):
         """Parse the post's content to determine whether to save the content as a photo gallery or file."""
@@ -362,7 +367,13 @@ class FantiaDownloader:
                     self.download_photo(photo_url, photo_counter, gallery_directory)
                     photo_counter += 1
             elif post_json.get("category") == "file":
-                filename = os.path.join(post_directory, post_json["filename"])
+                """change"""
+                if post_json["title"] is not None:
+                    filename = os.path.join(post_directory, post_json["title"])
+                    file_type = "." + post_json["content_type"].split("/")[1]
+                    filename = filename + file_type
+                else:
+                    filename = os.path.join(post_directory, post_json["filename"])
                 download_url = urljoin(POST_URL, post_json["download_uri"])
                 self.download_file(download_url, filename, post_directory)
             elif post_json.get("category") == "embed":
@@ -410,7 +421,7 @@ class FantiaDownloader:
         post_title = post_json["title"]
         post_contents = post_json["post_contents"]
 
-        post_directory_title = sanitize_for_path(str(post_id))
+        post_directory_title = sanitize_for_path(str(post_title))
 
         post_directory = os.path.join(self.directory, sanitize_for_path(post_creator), post_directory_title)
         os.makedirs(post_directory, exist_ok=True)
