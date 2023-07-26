@@ -340,7 +340,7 @@ class FantiaDownloader:
                 post_id = link.lstrip(POST_RELATIVE_URL)
                 date_string = post.select_one(".post-date .mr-5").text if post.select_one(".post-date .mr-5") else post.select_one(".post-date").text
                 parsed_date = dt.strptime(date_string, "%Y-%m-%d %H:%M")
-                if not self.month_limit or (parsed_date.year == self.month_limit.year and parsed_date.month == self.month_limit.month):
+                if not self.month_limit or (parsed_date.year == self.month_limit.year and parsed_date.month >= self.month_limit.month) or (parsed_date.year > self.month_limit.year):
                     post_found = True
                     new_post_ids.append(post_id)
             all_posts += new_post_ids
@@ -430,7 +430,16 @@ class FantiaDownloader:
                     photo_counter += 1
             elif post_json.get("category") == "file":
                 if post_json["title"] is not None:
-                    filename = os.path.join(post_directory, post_json["title"])
+                    title = post_json["title"].replace("/", "")
+                    title = title.replace("*", "")
+                    title = title.replace("?", "")
+                    title = title.replace("\\", "")
+                    title = title.replace("<", "")
+                    title = title.replace(">", "")
+                    title = title.replace("|", "")
+                    title = title.replace(":", "")
+                    title = title.replace("\"", "")
+                    filename = os.path.join(post_directory, title)
                     file_type = "." + post_json["content_type"].split("/")[1]
                     filename = filename + file_type
                 else:
